@@ -1,0 +1,121 @@
+
+
+# Start interactive debian
+sudo docker run -t -i debian bash
+
+
+
+docker run debian sh -c 'echo $FOO $BAR'
+docker run -e FOO=foo -e BAR=bar debian sh -c 'echo $FOO $BAR'   # Run with environmental variables
+foo bar
+
+
+docker commit <container image> ## Takes snapshot
+docker attach <container> ## Attach terminal to container
+
+
+
+# Image management
+docker images # list images
+docker commit <container image> # Create an image from a container
+docker pull repo[:tag] # pull image from repo
+docker push repo[:tag] # push image to repo
+docker save repo[:tag] # export an image/repo
+
+
+The Docker Builder
+- Directory contains a Dockerfile, other files to use during build
+docker build [-t tag] path   -> tarball created
+
+
+
+
+
+
+DOCKERFILE EXAMPLE:
+    # base image: last debian release
+    FROM debian:wheezy
+    # install the latest upgrades
+    RUN apt-get update && apt-get -y dist-upgrade
+    # install nginx
+    RUN apt-get -y install nginx
+    # set the default container command
+    # −> run nginx in the foreground
+    CMD ["nginx", "-g", "daemon off;"]
+    # Tell the docker engine that there will be somenthing listening on the tcp port 80
+    EXPOSE 80
+
+
+Dockerfile commands:
+COPY path dst # copy from path to destination at build time
+ADD src dst # same as copy, but accepts http urls
+RUN command # run arbirtrary command in the container
+
+# list form
+RUN ["apt-get", "update"]
+# shell form
+RUN apt-get update # equivalent to: RUN [”/bin/sh”, ”−c”, ”apt−get update”]
+
+
+
+
+
+## Example build:
+
+    #======= Stage 1: build the app from sources =======#
+    FROM debian:stretch AS builder
+    # update the package lists an install the build dependencies
+    RUN apt-get -qqy update
+    RUN apt-get -qqy install gcc make libacme-dev
+    # install the sources in /opt/src and build them
+    COPY . /opt/src
+    RUN cd /opt/src && ./configure && make
+    # install the files in a tmp dir and make an archive that we can deploy elsewhere
+    RUN cd /opt/src && make install DESTDIR=/tmp/dst \
+    && cd /tmp/dst && tar czvf /tmp/myapp.tgz .
+    #======= Stage 2: final image ================#
+    FROM debian:stretch
+    # update the package lists and install the runtime dependencies
+    RUN apt-get -qqy update
+    RUN apt-get -qqy install libacme1.0
+    # install the app built in stage 1
+    COPY --from=builder /tmp/myapp.tgz /tmp/
+    RUN cd / && tar zxf /tmp/myapp.tgz
+    CMD ["myapp"]
+
+
+
+
+
+# Run container as a normal user, not root
+    docker run -u USER
+
+
+
+
+
+
+
+
+     Dockerfile typically follows these steps:
+Determine your base image
+Install application dependencies
+Copy in any relevant source code and/or binaries
+Configure the final image
+
+
+
+
+
+
+
+
+EXAMPLE APT USAGE:
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  bzr \
+  cvs \
+  git \
+  mercurial \
+  subversion \
+  && rm -rf /var/lib/apt/lists/*
